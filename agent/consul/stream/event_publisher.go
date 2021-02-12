@@ -179,22 +179,34 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	if req.Index == 0 && snapFromCache != nil {
 		return e.subscriptions.add(req, snapFromCache.First), nil
 	}
-	snap := newEventSnapshot()
 
 	// if the request has an Index the client view is stale and must be reset
 	// with a NewSnapshotToFollow event.
 	if req.Index > 0 {
-		snap.buffer.Append([]Event{{
-			Topic:   req.Topic,
-			Payload: newSnapshotToFollow{},
-		}})
-
 		if snapFromCache != nil {
+			snap := newEventSnapshot()
+			snap.buffer.Append([]Event{{
+				Topic:   req.Topic,
+				Payload: newSnapshotToFollow{},
+			}})
 			snap.buffer.AppendItem(snapFromCache.First)
 			return e.subscriptions.add(req, snap.First), nil
 		}
+
+		snapForCache := newEventSnapshot()
+		snapForCache.appendAndSplice(*req, handler, topicHead)
+		e.setCachedSnapshotLocked(req, snapForCache)
+
+		result := newEventSnapshot()
+		result.buffer.Append([]Event{{
+			Topic:   req.Topic,
+			Payload: newSnapshotToFollow{},
+		}})
+		result.buffer.AppendItem(snapForCache.First)
+		return e.subscriptions.add(req, result.First), nil
 	}
 
+	snap := newEventSnapshot()
 	snap.appendAndSplice(*req, handler, topicHead)
 	e.setCachedSnapshotLocked(req, snap)
 	return e.subscriptions.add(req, snap.First), nil
