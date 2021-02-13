@@ -671,7 +671,7 @@ func TestAPI_AuthMethod_List(t *testing.T) {
 		Name:          "test_1",
 		Type:          "kubernetes",
 		Description:   "test 1",
-		MaxTokenTTL:   260 * 1000 * 1000 * 1000, // can't use underscores until go-13
+		MaxTokenTTL:   260 * time.Second,
 		TokenLocality: "global",
 		Config:        AuthMethodCreateKubernetesConfigHelper(),
 	}
@@ -703,7 +703,7 @@ func TestAPI_AuthMethod_List(t *testing.T) {
 	{
 		entry := entries[0]
 		require.Equal(t, "test_1", entry.Name)
-		require.Equal(t, time.Duration(260000000000), entry.MaxTokenTTL)
+		require.Equal(t, 260*time.Second, entry.MaxTokenTTL)
 		require.Equal(t, "global", entry.TokenLocality)
 	}
 	{
